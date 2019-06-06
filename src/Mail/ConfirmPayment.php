@@ -40,6 +40,6 @@ class ConfirmPayment extends Mailable
     public function build()
     {
         return $this->subject(__('Confirm Payment'))
-            ->markdown('cashier::emails.payment_action_required');
+            ->markdown('cashier::emails.confirm_payment');
     }
 }
