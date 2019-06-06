@@ -3,7 +3,7 @@
 namespace Laravel\Cashier\Tests\Integration;
 
 use Laravel\Cashier\Payment;
-use Laravel\Cashier\Exceptions\ActionRequired;
+use Laravel\Cashier\Exceptions\PaymentActionRequired;
 
 class ChargesTest extends IntegrationTestCase
 {
@@ -53,8 +53,8 @@ class ChargesTest extends IntegrationTestCase
         try {
             $user->charge(1000);
 
-            $this->fail('Expected exception '.ActionRequired::class.' was not thrown.');
-        } catch (ActionRequired $e) {
+            $this->fail('Expected exception '.PaymentActionRequired::class.' was not thrown.');
+        } catch (PaymentActionRequired $e) {
             // Assert that the payment needs an extra action.
             $this->assertTrue($e->payment->requiresAction());
 

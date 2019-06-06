@@ -2,9 +2,9 @@
 
 namespace Laravel\Cashier;
 
-use Laravel\Cashier\Exceptions\ActionRequired;
 use Laravel\Cashier\Exceptions\PaymentFailure;
 use Stripe\PaymentIntent as StripePaymentIntent;
+use Laravel\Cashier\Exceptions\PaymentActionRequired;
 
 class Payment
 {
@@ -111,7 +111,7 @@ class Payment
      *
      * @return void
      *
-     * @throws \Laravel\Cashier\Exceptions\ActionRequired
+     * @throws \Laravel\Cashier\Exceptions\PaymentActionRequired
      * @throws \Laravel\Cashier\Exceptions\PaymentFailure
      */
     public function validate()
@@ -119,7 +119,7 @@ class Payment
         if ($this->requiresPaymentMethod()) {
             throw PaymentFailure::cardError($this);
         } elseif ($this->requiresAction()) {
-            throw ActionRequired::incomplete($this);
+            throw PaymentActionRequired::incomplete($this);
         }
     }
 

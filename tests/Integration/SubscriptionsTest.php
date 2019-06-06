@@ -9,8 +9,8 @@ use Stripe\Coupon;
 use Stripe\Product;
 use Illuminate\Support\Str;
 use Laravel\Cashier\Subscription;
-use Laravel\Cashier\Exceptions\ActionRequired;
 use Laravel\Cashier\Exceptions\PaymentFailure;
+use Laravel\Cashier\Exceptions\PaymentActionRequired;
 
 class SubscriptionsTest extends IntegrationTestCase
 {
@@ -222,8 +222,8 @@ class SubscriptionsTest extends IntegrationTestCase
         try {
             $user->newSubscription('main', static::$planId)->create('tok_threeDSecure2Required');
 
-            $this->fail('Expected exception '.ActionRequired::class.' was not thrown.');
-        } catch (ActionRequired $e) {
+            $this->fail('Expected exception '.PaymentActionRequired::class.' was not thrown.');
+        } catch (PaymentActionRequired $e) {
             // Assert that the payment needs an extra action.
             $this->assertTrue($e->payment->requiresAction());
 
@@ -274,8 +274,8 @@ class SubscriptionsTest extends IntegrationTestCase
             // Attempt to swap and pay with a faulty card.
             $subscription = $subscription->swap(static::$premiumPlanId);
 
-            $this->fail('Expected exception '.ActionRequired::class.' was not thrown.');
-        } catch (ActionRequired $e) {
+            $this->fail('Expected exception '.PaymentActionRequired::class.' was not thrown.');
+        } catch (PaymentActionRequired $e) {
             // Assert that the payment needs an extra action.
             $this->assertTrue($e->payment->requiresAction());
 

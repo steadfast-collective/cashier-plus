@@ -10,8 +10,8 @@ use Illuminate\Support\Carbon;
 use Laravel\Cashier\Subscription;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Mail;
+use Laravel\Cashier\Mail\ConfirmPayment;
 use Symfony\Component\HttpFoundation\Response;
-use Laravel\Cashier\Mail\PaymentActionRequired;
 use Stripe\PaymentIntent as StripePaymentIntent;
 use Laravel\Cashier\Http\Middleware\VerifyWebhookSignature;
 
@@ -190,7 +190,7 @@ class WebhookController extends Controller
                 StripePaymentIntent::retrieve($payload['data']['object']['payment_intent'], Cashier::stripeOptions())
             );
 
-            Mail::to($user)->send(new PaymentActionRequired($user, $payment));
+            Mail::to($user)->send(new ConfirmPayment($user, $payment));
         }
 
         return new Response('Webhook Handled', 200);

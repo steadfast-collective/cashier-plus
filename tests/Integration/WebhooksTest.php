@@ -7,8 +7,8 @@ use Stripe\Product;
 use Illuminate\Support\Str;
 use Laravel\Cashier\Cashier;
 use Illuminate\Support\Facades\Mail;
-use Laravel\Cashier\Exceptions\ActionRequired;
-use Laravel\Cashier\Mail\PaymentActionRequired;
+use Laravel\Cashier\Mail\ConfirmPayment;
+use Laravel\Cashier\Exceptions\PaymentActionRequired;
 
 class WebhooksTest extends IntegrationTestCase
 {
@@ -82,8 +82,8 @@ class WebhooksTest extends IntegrationTestCase
         try {
             $user->newSubscription('main', static::$planId)->create('tok_threeDSecure2Required');
 
-            $this->fail('Expected exception '.ActionRequired::class.' was not thrown.');
-        } catch (ActionRequired $exception) {
+            $this->fail('Expected exception '.PaymentActionRequired::class.' was not thrown.');
+        } catch (PaymentActionRequired $exception) {
             Mail::fake();
 
             $this->postJson('stripe/webhook', [
@@ -98,7 +98,7 @@ class WebhooksTest extends IntegrationTestCase
                 ],
             ])->assertOk();
 
-            Mail::assertSent(PaymentActionRequired::class, function (PaymentActionRequired $mail) use ($user) {
+            Mail::assertSent(ConfirmPayment::class, function (ConfirmPayment $mail) use ($user) {
                 return $mail->hasTo($user->email);
             });
         }

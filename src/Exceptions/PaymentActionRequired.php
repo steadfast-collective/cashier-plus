@@ -4,10 +4,10 @@ namespace Laravel\Cashier\Exceptions;
 
 use Laravel\Cashier\Payment;
 
-class ActionRequired extends IncompletePayment
+class PaymentActionRequired extends IncompletePayment
 {
     /**
-     * Create a new ActionRequired instance.
+     * Create a new PaymentActionRequired instance.
      *
      * @param  \Laravel\Cashier\Payment  $payment
      * @return self

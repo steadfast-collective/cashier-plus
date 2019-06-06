@@ -5,7 +5,7 @@ namespace Laravel\Cashier\Mail;
 use Laravel\Cashier\Payment;
 use Illuminate\Mail\Mailable;
 
-class PaymentActionRequired extends Mailable
+class ConfirmPayment extends Mailable
 {
     /**
      * The Stripe model instance.
@@ -20,7 +20,7 @@ class PaymentActionRequired extends Mailable
     public $payment;
 
     /**
-     * Create a new PaymentActionRequired instance.
+     * Create a new ConfirmPayment instance.
      *
      * @param  \Illuminate\Database\Eloquent\Model  $owner
      * @param  \Laravel\Cashier\Payment $payment
