@@ -19,6 +19,9 @@ class IncompletePayment extends Exception
      * Create a new IncompletePayment instance.
      *
      * @param  \Laravel\Cashier\Payment  $payment
+     * @param  string  $message
+     * @param  int  $code
+     * @param  \Throwable|null  $previous
      * @return void
      */
     public function __construct(Payment $payment, $message = '', $code = 0, Throwable $previous = null)
