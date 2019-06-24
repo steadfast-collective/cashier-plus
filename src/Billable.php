@@ -28,31 +28,9 @@ trait Billable
      * @return \Laravel\Cashier\Payment
      * @throws \InvalidArgumentException
      */
-    public function charge($amount, array $options = [])
+    public function charge($name, $amount)
     {
-        $options = array_merge([
-            'confirmation_method' => 'automatic',
-            'confirm' => true,
-            'currency' => $this->preferredCurrency(),
-        ], $options);
-
-        $options['amount'] = $amount;
-
-        if ($this->stripe_id) {
-            $options['customer'] = $this->stripe_id;
-        }
-
-        if (! array_key_exists('payment_method', $options) && ! array_key_exists('customer', $options)) {
-            throw new InvalidArgumentException('No payment method provided.');
-        }
-
-        $payment = new Payment(
-            StripePaymentIntent::create($options, Cashier::stripeOptions())
-        );
-
-        $payment->validate();
-
-        return $payment;
+        return new ChargeBuilder($this, $amount, $options);
     }
 
     /**
@@ -338,6 +316,37 @@ trait Billable
             foreach ($stripeInvoices->data as $invoice) {
                 if ($invoice->paid || $includePending) {
                     $invoices[] = new Invoice($this, $invoice);
+                }
+            }
+        }
+
+        return new Collection($invoices);
+    }
+
+    /**
+     * Get a collection of the entity's invoices.
+     *
+     * @param  bool  $includePending
+     * @param  array  $parameters
+     * @return \Illuminate\Support\Collection
+     */
+    public function charges($includePending = false, $parameters = [])
+    {
+        $this->assertCustomerExists();
+
+        $charges = [];
+
+        $parameters = array_merge(['limit' => 24], $parameters);
+
+        $stripeCharges = $this->asStripeCustomer()->charges($parameters);
+
+        // Here we will loop through the Stripe invoices and create our own custom Invoice
+        // instances that have more helper methods and are generally more convenient to
+        // work with than the plain Stripe objects are. Then, we'll return the array.
+        if (! is_null($stripeCharges)) {
+            foreach ($stripeCharges->data as $charge) {
+                if ($charge->paid || $includePending) {
+                    $charges[] = new Charge($this, $charge);
                 }
             }
         }
