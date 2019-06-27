@@ -5,6 +5,7 @@ namespace Laravel\Cashier;
 use Stripe\Coupon as StripeCoupon;
 use Stripe\InvoiceItem as StripeInvoiceItem;
 use Stripe\PaymentIntent as StripePaymentIntent;
+use Laravel\Cashier\Exceptions\InvalidStripeCoupon;
 
 class ChargeBuilder
 {
@@ -129,10 +130,14 @@ class ChargeBuilder
     {
         $stripeCoupon = StripeCoupon::retrieve($coupon, Cashier::stripeOptions());
 
+        if (!$stripeCoupon->valid) {
+            throw InvalidStripeCoupon::invalid($coupon);
+        }
+
         $this->coupon = new Coupon($stripeCoupon);
 
         if (!$this->coupon->validForCharges()) {
-            throw new \Exception("Coupon not valid for charge.", 1);
+            throw InvalidStripeCoupon::invalidForCharge($coupon);
         }
 
         return $this;
