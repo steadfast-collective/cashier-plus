@@ -43,7 +43,7 @@ class Payment
      */
     public function amount()
     {
-        return Cashier::formatAmount($this->rawAmount());
+        return Cashier::formatAmount($this->rawAmount(), $this->paymentIntent->currency);
     }
 
     /**
@@ -131,5 +131,16 @@ class Payment
     public function asStripePaymentIntent()
     {
         return $this->paymentIntent;
+    }
+
+    /**
+     * Dynamically get values from the Stripe PaymentIntent.
+     *
+     * @param  string  $key
+     * @return mixed
+     */
+    public function __get($key)
+    {
+        return $this->paymentIntent->{$key};
     }
 }

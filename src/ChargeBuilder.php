@@ -2,9 +2,7 @@
 
 namespace SteadfastCollective\CashierExtended;
 
-use Carbon\Carbon;
-use DateTimeInterface;
-use Laravel\Cashier\Exceptions\SubscriptionCreationFailed;
+use Stripe\Coupon as StripeCoupon;
 
 class ChargeBuilder
 {
@@ -18,7 +16,7 @@ class ChargeBuilder
     /**
      * The amount of the charge in single units (eg. $19.99 would be 1999).
      *
-     * @var integer
+     * @var int
      */
     protected $amount;
 
@@ -37,21 +35,21 @@ class ChargeBuilder
     protected $currency;
 
     /**
-     * The quantity of the subscription.
+     * The quantity of the charge.
      *
      * @var int
      */
     protected $quantity = 1;
 
     /**
-     * The coupon code being applied to the customer.
+     * The coupon code being applied to the charge.
      *
      * @var string|null
      */
     protected $coupon;
 
     /**
-     * The metadata to apply to the subscription.
+     * The metadata to apply to the charge.
      *
      * @var array|null
      */
@@ -127,7 +125,13 @@ class ChargeBuilder
      */
     public function withCoupon($coupon)
     {
-        $this->coupon = $coupon;
+        $stripeCoupon = StripeCoupon::retrieve($coupon, Cashier::stripeOptions());
+
+        if (!$stripeCoupon || !$stripeCoupon->valid) {
+            throw new \Exception("Error Processing Request", 1);
+        }
+
+        $this->coupon = new Coupon($stripeCoupon);
 
         return $this;
     }
@@ -181,25 +185,17 @@ class ChargeBuilder
      */
     public function createWithoutInvoice($token = null, array $options = [])
     {
-        // if (! array_key_exists('source', $options) && $this->stripe_id) {
-        //     $options['customer'] = $this->stripe_id;
-        // }
-        //
-        // if (! array_key_exists('source', $options) && ! array_key_exists('customer', $options)) {
-        //     throw new InvalidArgumentException('No payment source provided.');
-        // }
-        //
-        // return StripeCharge::create($this->buildPayload(), ['api_key' => $this->getStripeKey()]);
-
         $options = array_merge([
             'confirmation_method' => 'automatic',
             'confirm' => true,
             'currency' => $this->currency,
         ], $options);
 
-        $options['amount'] = $this->calculateFinalAmount();
+        $options['amount'] = $this->calculateFinalAmount() * $this->quantity;
 
         $options['customer'] = $this->getStripeCustomer($token)->id;
+
+        $options['metadata'] = $this->metadata;
 
         if (! array_key_exists('payment_method', $options) && ! array_key_exists('customer', $options)) {
             throw new InvalidArgumentException('No payment method provided.');
@@ -223,7 +219,13 @@ class ChargeBuilder
      */
     public function createWithInvoice($token = null, array $options = [])
     {
-        //
+        $options = array_merge([
+            'quantity' => $this->quantity,
+        ], $options);
+
+        $this->owner->tab($this->name, $this->calculateFinalAmount(), $options);
+
+        return $this->owner->invoice($options);
     }
 
     /**
@@ -246,7 +248,19 @@ class ChargeBuilder
 
     protected function calculateFinalAmount()
     {
-        return ($this->amount * $this->quantity);
+        $amount = $this->amount;
+
+        if ($this->coupon && $this->coupon->validForCharges()) {
+            if ($this->coupon->amount_off !== null) {
+                $amount = $amount - $this->coupon->amount_off;
+            } elseif ($this->coupon->percent_off !== null) {
+                $amount = $amount * ($this->coupon->percent_off / 100);
+            }
+        }
+
+        $amount = (int) (round($amount));
+
+        return $amount;
     }
 
     /**
@@ -260,4 +274,22 @@ class ChargeBuilder
             return $taxPercentage;
         }
     }
+
+    /**
+     * Build the payload for subscription creation.
+     *
+     * @return array
+     */
+    protected function buildPayload()
+    {
+        return array_filter([
+            'metadata' => $this->metadata,
+            'plan' => $this->plan,
+            'quantity' => $this->quantity,
+            'tax_percent' => $this->getTaxPercentageForPayload(),
+            'trial_end' => $this->getTrialEndForPayload(),
+            'expand' => ['latest_invoice.payment_intent'],
+        ]);
+    }
+
 }

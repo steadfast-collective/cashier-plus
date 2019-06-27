@@ -3,6 +3,7 @@
 namespace Laravel\Cashier\Tests\Integration;
 
 use Laravel\Cashier\Payment;
+use Stripe\Error\InvalidRequest;
 use Laravel\Cashier\Exceptions\PaymentActionRequired;
 
 class ChargesTest extends IntegrationTestCase
@@ -17,6 +18,28 @@ class ChargesTest extends IntegrationTestCase
 
         $this->assertInstanceOf(Payment::class, $response);
         $this->assertEquals(1000, $response->rawAmount());
+        $this->assertEquals($user->stripe_id, $response->customer);
+    }
+
+    public function test_customer_cannot_be_charged_without_a_payment_method()
+    {
+        $user = $this->createCustomer('customer_cannot_be_charged_without_a_payment_method');
+        $user->createAsStripeCustomer();
+
+        $this->expectException(InvalidRequest::class);
+
+        $user->charge(1000);
+    }
+
+    public function test_non_stripe_customer_can_be_charged()
+    {
+        $user = $this->createCustomer('non_stripe_customer_can_be_charged');
+
+        $response = $user->charge(1000, ['payment_method' => 'pm_card_visa']);
+
+        $this->assertInstanceOf(Payment::class, $response);
+        $this->assertEquals(1000, $response->rawAmount());
+        $this->assertNull($response->customer);
     }
 
     public function test_customer_can_be_charged_and_invoiced_immediately()
