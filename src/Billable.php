@@ -23,14 +23,13 @@ trait Billable
     /**
      * Make a "one off" charge on the customer for the given amount.
      *
+     * @param  string  $name
      * @param  int  $amount
-     * @param  array  $options
-     * @return \Laravel\Cashier\Payment
-     * @throws \InvalidArgumentException
+     * @return \Laravel\Cashier\ChargeBuilder
      */
     public function charge($name, $amount)
     {
-        return new ChargeBuilder($this, $amount, $options);
+        return new ChargeBuilder($this, $name, $amount);
     }
 
     /**

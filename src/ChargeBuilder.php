@@ -1,8 +1,10 @@
 <?php
 
-namespace SteadfastCollective\CashierExtended;
+namespace Laravel\Cashier;
 
 use Stripe\Coupon as StripeCoupon;
+use Stripe\InvoiceItem as StripeInvoiceItem;
+use Stripe\PaymentIntent as StripePaymentIntent;
 
 class ChargeBuilder
 {
@@ -127,11 +129,11 @@ class ChargeBuilder
     {
         $stripeCoupon = StripeCoupon::retrieve($coupon, Cashier::stripeOptions());
 
-        if (!$stripeCoupon || !$stripeCoupon->valid) {
-            throw new \Exception("Error Processing Request", 1);
-        }
-
         $this->coupon = new Coupon($stripeCoupon);
+
+        if (!$this->coupon->validForCharges()) {
+            throw new \Exception("Coupon not valid for charge.", 1);
+        }
 
         return $this;
     }
@@ -220,12 +222,16 @@ class ChargeBuilder
     public function createWithInvoice($token = null, array $options = [])
     {
         $options = array_merge([
+            'customer' => $this->getStripeCustomer($token)->id,
+            'unit_amount' => $this->calculateFinalAmount(),
             'quantity' => $this->quantity,
+            'currency' => $this->currency,
+            'description' => $this->name,
         ], $options);
 
-        $this->owner->tab($this->name, $this->calculateFinalAmount(), $options);
+        $tab = StripeInvoiceItem::create($options, Cashier::stripeOptions());
 
-        return $this->owner->invoice($options);
+        return $this->owner->invoice([]);
     }
 
     /**
