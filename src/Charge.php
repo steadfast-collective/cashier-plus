@@ -4,8 +4,8 @@ namespace Laravel\Cashier;
 
 use Carbon\Carbon;
 use Dompdf\Dompdf;
-use Illuminate\Support\Facades\View;
 use Stripe\Charge as StripeCharge;
+use Illuminate\Support\Facades\View;
 use Symfony\Component\HttpFoundation\Response;
 
 class Charge

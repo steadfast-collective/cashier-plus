@@ -3,9 +3,12 @@
 namespace Laravel\Cashier;
 
 use Stripe\Coupon as StripeCoupon;
+use Stripe\Invoice as StripeInvoice;
 use Stripe\InvoiceItem as StripeInvoiceItem;
+use Stripe\Error\Card as StripeCardException;
 use Stripe\PaymentIntent as StripePaymentIntent;
-use Laravel\Cashier\Exceptions\InvalidStripeCoupon;
+
+use Stripe\Error\InvalidRequest as StripeErrorInvalidRequest;
 
 class ChargeBuilder
 {
@@ -208,11 +211,29 @@ class ChargeBuilder
             throw new InvalidArgumentException('No payment method provided.');
         }
 
-        $payment = new Payment(
-            StripePaymentIntent::create($options, Cashier::stripeOptions())
-        );
+        $stripePayment = StripePaymentIntent::create($options, Cashier::stripeOptions());
+
+        $charge = $this->owner->charges()->create([
+            'name' => $this->name,
+            'status' => 'active',
+            'stripe_id' => $stripePayment->id,
+        ]);
+
+        $payment = new Payment($stripePayment);
+
+        // if ($stripeSubscription->status === 'incomplete') {
+        //     $subscription->markAsIncomplete();
+        //
+        //     $payment = new Payment($stripeSubscription->latest_invoice->payment_intent);
+        //
+        //     $payment->validate();
+        // }
+
+
 
         $payment->validate();
+
+
 
         return $payment;
     }
@@ -224,19 +245,46 @@ class ChargeBuilder
      * @param  array  $options
      * @return \Laravel\Cashier\Invoice
      */
-    public function createWithInvoice($token = null, array $options = [])
+    public function createWithInvoice($token = null, array $options = [], array $invoiceOptions = [])
     {
+        $customer = $this->getStripeCustomer($token);
+
         $options = array_merge([
-            'customer' => $this->getStripeCustomer($token)->id,
+            'customer' => $customer->id,
             'unit_amount' => $this->calculateFinalAmount(),
             'quantity' => $this->quantity,
             'currency' => $this->currency,
             'description' => $this->name,
         ], $options);
 
-        $tab = StripeInvoiceItem::create($options, Cashier::stripeOptions());
+        /** @var \Stripe\InvoiceItem $invoiceItem */
+        $invoiceItem = StripeInvoiceItem::create($options, Cashier::stripeOptions());
 
-        return $this->owner->invoice([]);
+        $invoiceOptions = array_merge(
+            $invoiceOptions,
+            [
+                'customer' => $customer->id,
+            ]
+        );
+
+        /** @var \Stripe\Invoice $invoice */
+        $invoice = StripeInvoice::create($invoiceOptions, Cashier::stripeOptions());
+
+        dd($invoice);
+
+        try {
+
+            return $invoice->pay();
+        } catch (StripeErrorInvalidRequest $e) {
+            return false;
+        } catch (StripeCardException $exception) {
+            $payment = new Payment(
+                StripePaymentIntent::retrieve($invoice->refresh()->payment_intent, Cashier::stripeOptions())
+            );
+
+            $payment->validate();
+        }
+
     }
 
     /**

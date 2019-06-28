@@ -10,50 +10,51 @@
 
     <script src="https://js.stripe.com/v3"></script>
 </head>
-<body class="font-sans text-gray-700 bg-gray-100 leading-normal p-4 h-full">
+<body class="font-sans text-gray-600 bg-gray-200 leading-normal p-4 h-full">
     <div class="h-full md:flex md:justify-center md:items-center">
         <div class="w-full max-w-lg">
-            <p id="message" class="hidden mb-4 bg-red-400 px-6 py-4 rounded text-white"></p>
+            <p id="message" class="hidden mb-4 bg-red-100 border border-red-400 px-6 py-4 rounded-lg text-red-600"></p>
 
-            <div class="bg-white rounded-lg shadow-xl p-4 mb-5">
+            <div class="bg-white rounded-lg shadow-xl p-4 sm:py-6 sm:px-10 mb-5">
                 @if ($payment->isSucceeded())
-                    <h1 class="text-2xl mt-2 mb-4 font-bold text-center">
+                    <h1 class="text-xl mt-2 mb-4 text-gray-700">
                         {{ __('Payment Successful') }}
                     </h1>
 
-                    <p class="mb-4">{{ __('This payment was already successfully confirmed.') }}</p>
-
-                    @include('cashier::components.button', ['label' => __('Continue')])
+                    <p class="mb-6">{{ __('This payment was already successfully confirmed.') }}</p>
                 @elseif ($payment->isCancelled())
-                    <h1 class="text-2xl mt-2 mb-4 font-bold text-center">
+                    <h1 class="text-xl mt-2 mb-4 text-gray-700">
                         {{ __('Payment Cancelled') }}
                     </h1>
 
-                    <p class="mb-4">{{ __('This payment was cancelled.') }}</p>
-
-                    @include('cashier::components.button', ['label' => __('Continue')])
+                    <p class="mb-6">{{ __('This payment was cancelled.') }}</p>
                 @else
-                    <h1 class="text-2xl mt-2 mb-4 font-bold text-center">
-                        {{ __('Confirm your :amount payment', ['amount' => $payment->amount()]) }}
-                    </h1>
-
                     <div id="payment-elements">
-                        <p class="mb-4">
+                        <h1 class="text-xl mt-2 mb-4 text-gray-700">
+                            {{ __('Confirm your :amount payment', ['amount' => $payment->amount()]) }}
+                        </h1>
+
+                        <p class="mb-6">
                             {{ __('Extra confirmation is needed to process your payment. Please confirm your payment by filling out your payment details below.') }}
                         </p>
 
-                        <input id="cardholder-name" type="text" placeholder="{{ __('Name') }}" required
-                               class="inline-block w-full px-6 py-4 mb-4 bg-gray-100 rounded">
+                        <label for="cardholder-name" class="inline-block text-sm text-gray-700 font-semibold mb-2">{{ __('Full name') }}</label>
+                        <input id="cardholder-name" type="text" placeholder="Jane Doe" required
+                               class="inline-block bg-gray-200 border border-gray-400 rounded-lg w-full px-4 py-3 mb-3">
 
-                        <div id="card-element" class="bg-gray-100 rounded px-6 py-4 mb-4"></div>
+                        <label for="cardholder-name" class="inline-block text-sm text-gray-700 font-semibold mb-2">{{ __('Card') }}</label>
+                        <div id="card-element" class="bg-gray-200 border border-gray-400 rounded-lg p-4 mb-6"></div>
 
-                        <button id="card-button" class="inline-block w-full px-4 py-3 mb-4 bg-blue-600 text-white font-bold rounded hover:bg-blue-500">
+                        <button id="card-button" class="inline-block w-full px-4 py-3 mb-4 bg-blue-600 text-white rounded-lg hover:bg-blue-500">
                             {{ __('Pay :amount', ['amount' => $payment->amount()]) }}
                         </button>
                     </div>
-
-                    @include('cashier::components.button', ['label' => __('Back')])
                 @endif
+
+                <a href="{{ $redirect ?? url('/') }}"
+                   class="inline-block w-full px-4 py-3 bg-gray-200 hover:bg-gray-300 text-center text-gray-700 rounded-lg">
+                    {{ __('Go back') }}
+                </a>
 
                 <script>
                     const paymentElements = document.getElementById('payment-elements');
@@ -74,8 +75,6 @@
                                 }
                             }
                         ).then(function (result) {
-                            console.log(result);
-
                             if (result.error) {
                                 if (result.error.code === 'parameter_invalid_empty' &&
                                     result.error.param === 'payment_method_data[billing_details][name]') {
@@ -84,12 +83,22 @@
                                     message.innerText = '⚠️ '+result.error.message;
                                 }
 
-                                message.classList.add('bg-red-400');
+                                message.classList.add('text-red-600');
+                                message.classList.add('border-red-400');
+                                message.classList.add('bg-red-100');
+                                message.classList.remove('text-green-600');
+                                message.classList.remove('border-green-400');
+                                message.classList.remove('bg-green-100');
                             } else {
                                 paymentElements.style.display = 'none';
 
                                 message.innerText = '✅ {{ __('The payment was successful.') }}';
-                                message.classList.add('bg-green-400');
+                                message.classList.remove('text-red-600');
+                                message.classList.remove('border-red-400');
+                                message.classList.remove('bg-red-100');
+                                message.classList.add('text-green-600');
+                                message.classList.add('border-green-400');
+                                message.classList.add('bg-green-100');
                             }
 
                             message.style.display = 'block';
@@ -98,7 +107,7 @@
                 </script>
             </div>
 
-            <p class="text-center text-gray-400 text-sm">
+            <p class="text-center text-gray-500 text-sm">
                 © {{ date('Y') }} {{ config('app.name') }}. {{ __('All rights reserved.') }}
             </p>
         </div>

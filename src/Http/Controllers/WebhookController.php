@@ -24,7 +24,7 @@ class WebhookController extends Controller
      */
     public function __construct()
     {
-        if (config('services.stripe.webhook.secret')) {
+        if (config('cashier.webhook.secret')) {
             $this->middleware(VerifyWebhookSignature::class);
         }
     }
@@ -81,15 +81,19 @@ class WebhookController extends Controller
                 }
 
                 // Cancellation date...
-                if (isset($data['cancel_at_period_end']) && $data['cancel_at_period_end']) {
-                    $subscription->ends_at = $subscription->onTrial()
-                                ? $subscription->trial_ends_at
-                                : Carbon::createFromTimestamp($data['current_period_end']);
+                if (isset($data['cancel_at_period_end'])) {
+                    if ($data['cancel_at_period_end']) {
+                        $subscription->ends_at = $subscription->onTrial()
+                            ? $subscription->trial_ends_at
+                            : Carbon::createFromTimestamp($data['current_period_end']);
+                    } else {
+                        $subscription->ends_at = null;
+                    }
                 }
 
                 // Status...
                 if (isset($data['status'])) {
-                    if (in_array($data['status'], ['past_due', 'incomplete', 'incomplete_expired'])) {
+                    if (in_array($data['status'], ['incomplete', 'incomplete_expired'])) {
                         $subscription->status = 'incomplete';
                     } else {
                         $subscription->status = 'active';
@@ -184,7 +188,7 @@ class WebhookController extends Controller
      */
     protected function handleInvoicePaymentActionRequired(array $payload)
     {
-        if (Cashier::$paymentConfirmationEmails &&
+        if (config('cashier.payment_emails') &&
             $user = $this->getUserByStripeId($payload['data']['object']['customer'])) {
             $payment = new Payment(
                 StripePaymentIntent::retrieve($payload['data']['object']['payment_intent'], Cashier::stripeOptions())
@@ -204,7 +208,7 @@ class WebhookController extends Controller
      */
     protected function getUserByStripeId($stripeId)
     {
-        $model = Cashier::stripeModel();
+        $model = config('cashier.model');
 
         return (new $model)->where('stripe_id', $stripeId)->first();
     }
